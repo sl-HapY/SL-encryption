@@ -1,29 +1,38 @@
-# [**Salist Encryptor**](https://sl-hapy.github.io/SL-encryption/)
+# Salist Encrypt
 
-### [русская версия](Russki.md)
+A client-side cryptographic and steganographic web application built with Web Crypto API and zero external runtime dependencies.
 
-## [Open Salist Encryptor](https://sl-hapy.github.io/salist-encryption/)
+## Features
 
-With this encryption method [Quantum computing](https://en.wikipedia.org/wiki/Quantum_computing) will more likely spend 584 Year in Decrypting\
-it using [Brute Force](https://en.wikipedia.org/wiki/Brute-force_attack)
-attack(In The Last Update It Was Only 18 Minutes!).
-> [!IMPORTANT]
-> You Need To Remember Your 16 [Hex](https://en.wikipedia.org/wiki/Hexadecimal) Key To Decrypt The Text
+- Text Encryption: Cascaded AES-256-GCM with PBKDF2 key derivation and ultra-compact stream cipher with CRC verification.
+- File and Archive Encryption: Encrypt any single file with metadata preservation or pack multiple files and folders into an encrypted ZIP container.
+- Image Scrambling: Visual pixel permutation with authenticity watermark embedding.
+- Steganography: Differential macro-cell modulation designed to survive image compression and LSB fallback extraction.
+- Password Generator: Configurable character set selection (uppercase, lowercase, numbers, symbols) and entropy calculation.
+- Hash Suite: Real-time calculation of MD5, SHA-1, SHA-256, and SHA-512 digests.
+- QR Code Suite: Vector QR code generation and scanner via device camera or file upload.
+- Interface: Apple-inspired monochromatic solid layout with dark and light modes.
 
-> [!TIP]
-> It's Best to Use Copy Button In The [Website](https://sl-hapy.github.io/SL-encryption/) To Avoid The Misstakings
+## Architecture
 
-> ✔️ Increased encryption security
-> 
-> ✔️ Keys are now more secure
-> 
-> 🔴 Using strings as keys
+- Fully static and client-side: all cryptographic operations are executed in the browser sandbox.
+- Zero tracking, zero telemetry, and zero third-party network requests.
+- No database or backend required.
 
-## Privacy Policy
-We respect your privacy. This website does not collect, store, or share any personal information from its users.  
-We do not use cookies, tracking tools, or any form of analytics to monitor your activity.  
+## Quick Start
 
-## License
-This project is licensed under the [All Rights Reserved](https://github.com/sl-HapY/SL-encryption/blob/main/LICENSE) license.  
-Unauthorized use, reproduction, or distribution is strictly prohibited.  
-Please contact hapy@mail.ir for permissions or inquiries.
+### Direct in Browser
+Open `index.html` in any modern web browser.
+
+### Using Python Local Server
+```bash
+python enc.py
+```
+Navigate to `http://127.0.0.1:6778` in your browser.
+
+## File Structure
+
+- `index.html`: Core markup and embedded offline utilities.
+- `style.css`: Monochromatic interface styles for dark and light modes.
+- `app.js`: Application logic, cryptographic workflows, and event handlers.
+- `enc.py`: Lightweight local HTTP server.
