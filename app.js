@@ -7,6 +7,14 @@
 (function () {
     'use strict';
 
+    // Force HTTPS on GitHub Pages and production domains (Web Crypto API requires HTTPS)
+    if (typeof location !== 'undefined' && location.protocol === 'http:') {
+        const host = location.hostname;
+        if (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.') && !host.startsWith('10.')) {
+            location.replace(location.href.replace('http:', 'https:'));
+        }
+    }
+
     // --- STATE VARIABLES ---
     let mode = 'text';
     let imgData = null;
@@ -27,8 +35,36 @@
     function $(id) { return document.getElementById(id); }
     function $$(sel) { return document.querySelectorAll(sel); }
 
+    function hasSubtle() {
+        return !!(typeof window !== 'undefined' && window.crypto && window.crypto.subtle && typeof window.crypto.subtle.importKey === 'function');
+    }
+
+    // Universal cross-browser file reader (supporting mobile webviews, Safari iOS, etc.)
+    function readFileAsArrayBuffer(file) {
+        if (!file) return Promise.reject(new Error("No file selected"));
+        if (typeof file.arrayBuffer === 'function') {
+            return file.arrayBuffer().catch(() => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+        }
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
     // --- MODERN CRYPTOGRAPHY: Web Crypto AES-256-GCM + PBKDF2 (250,000 iter) ---
     async function deriveKey(password, salt) {
+        if (!hasSubtle()) {
+            throw new Error("Web Crypto API is only available over HTTPS. Please access via https://");
+        }
         const keyMaterial = await crypto.subtle.importKey(
             "raw", new TextEncoder().encode(password), { name: "PBKDF2" }, false, ["deriveKey"]
         );
@@ -66,16 +102,37 @@
         return new Uint8Array(plainBuffer);
     }
 
-    // Multi-Layer Cascaded V4 Encrypt & Decrypt
+    // Multi-Layer Cascaded V4 Encrypt & Decrypt (with pure-JS fallback if WebCrypto is disabled)
     async function multiLayerV4Encrypt(plainBytes, keys) {
-        let data = plainBytes;
-        for (const k of keys) {
-            data = await aesGcmEncrypt(data, k);
+        if (hasSubtle()) {
+            let data = plainBytes;
+            for (const k of keys) {
+                data = await aesGcmEncrypt(data, k);
+            }
+            return data;
+        } else {
+            // Pure JS authenticated fallback container
+            const enc = compactEncrypt(plainBytes, keys);
+            const magic = new TextEncoder().encode("SALISTjs");
+            const result = new Uint8Array(8 + enc.length);
+            result.set(magic, 0);
+            result.set(enc, 8);
+            return result;
         }
-        return data;
     }
 
     async function multiLayerV4Decrypt(cipherBytes, keys) {
+        const magicStr = new TextDecoder().decode(cipherBytes.subarray(0, 8));
+        if (magicStr === "SALISTjs") {
+            const enc = cipherBytes.subarray(8);
+            const res = compactDecrypt(enc, keys);
+            if (!res.verified) throw new Error("Authentication failed or incorrect key");
+            return res.data;
+        }
+        if (magicStr !== "SALISTv4") throw new Error("Invalid container format");
+        if (!hasSubtle()) {
+            throw new Error("This file was encrypted with AES-256-GCM. Please open this page via HTTPS to decrypt.");
+        }
         let data = cipherBytes;
         for (let i = keys.length - 1; i >= 0; i--) {
             data = await aesGcmDecrypt(data, keys[i]);
@@ -1232,26 +1289,27 @@
 
                             if (selectedFiles.length === 1 && !selectedFiles[0].name.endsWith('.salist')) {
                                 const f = selectedFiles[0];
-                                const buf = await f.arrayBuffer();
+                                const buf = await readFileAsArrayBuffer(f);
+                                const fileBytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
                                 const meta = JSON.stringify({ name: f.name, type: f.type, size: f.size });
                                 const metaBytes = new TextEncoder().encode(meta);
-                                const combined = new Uint8Array(4 + metaBytes.length + buf.byteLength);
-                                new DataView(combined.buffer).setUint32(0, metaBytes.length, true);
+                                const combined = new Uint8Array(4 + metaBytes.length + fileBytes.length);
+                                new DataView(combined.buffer, combined.byteOffset, combined.byteLength).setUint32(0, metaBytes.length, true);
                                 combined.set(metaBytes, 4);
-                                combined.set(new Uint8Array(buf), 4 + metaBytes.length);
+                                combined.set(fileBytes, 4 + metaBytes.length);
                                 filePayload = combined;
                                 outName = f.name + ".salist";
                             } else {
                                 const zipEntries = {};
                                 for (const f of selectedFiles) {
-                                    const buf = await f.arrayBuffer();
-                                    zipEntries[f.name] = new Uint8Array(buf);
+                                    const buf = await readFileAsArrayBuffer(f);
+                                    zipEntries[f.name] = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
                                 }
                                 const zipBytes = SalistZip.zipSync(zipEntries);
                                 const meta = JSON.stringify({ name: "archive.zip", type: "application/zip", isZip: true });
                                 const metaBytes = new TextEncoder().encode(meta);
                                 const combined = new Uint8Array(4 + metaBytes.length + zipBytes.length);
-                                new DataView(combined.buffer).setUint32(0, metaBytes.length, true);
+                                new DataView(combined.buffer, combined.byteOffset, combined.byteLength).setUint32(0, metaBytes.length, true);
                                 combined.set(metaBytes, 4);
                                 combined.set(zipBytes, 4 + metaBytes.length);
                                 filePayload = combined;
@@ -1260,7 +1318,7 @@
                             const encBytes = await multiLayerV4Encrypt(filePayload, keys);
                             encryptedFileBlob = new Blob([encBytes], { type: "application/octet-stream" });
                             decryptedFileName = outName;
-                            $('outputText').value = `[ENCRYPTED CONTAINER: ${outName} (${(encBytes.length / 1024).toFixed(1)} KB)]\nAES-256-GCM Multi-Layer Authenticated Container Ready.`;
+                            $('outputText').value = `[ENCRYPTED CONTAINER: ${outName} (${(encBytes.length / 1024).toFixed(1)} KB)]\nAuthenticated Container Ready.`;
                             $('downloadBtn').style.display = '';
                             $('verifiedBadge').classList.add('show');
                             $('resultSection').classList.add('show');
@@ -1303,7 +1361,9 @@
                             }
                         }
                     } catch (er) {
-                        toast('Encryption error', 'error');
+                        console.error('Encryption error:', er);
+                        const msg = er && er.message ? er.message : String(er);
+                        toast('Encryption error: ' + msg, 'error');
                     }
                     setButtonBusy(btn, false);
                 }, 40);
@@ -1377,11 +1437,11 @@
                         } else if (mode === 'files') {
                             if (!selectedFiles.length) { toast('No files selected', 'error'); setButtonBusy(btn, false); return; }
                             const file = selectedFiles[0];
-                            const fileBuf = await file.arrayBuffer();
-                            const cipherBytes = new Uint8Array(fileBuf);
+                            const fileBuf = await readFileAsArrayBuffer(file);
+                            const cipherBytes = fileBuf instanceof Uint8Array ? fileBuf : new Uint8Array(fileBuf);
                             const decBytes = await multiLayerV4Decrypt(cipherBytes, keys);
 
-                            const metaLen = new DataView(decBytes.buffer, decBytes.byteOffset, 4).getUint32(0, true);
+                            const metaLen = new DataView(decBytes.buffer, decBytes.byteOffset, decBytes.byteLength).getUint32(0, true);
                             const metaJsonBytes = decBytes.subarray(4, 4 + metaLen);
                             const meta = JSON.parse(new TextDecoder().decode(metaJsonBytes));
                             const rawData = decBytes.subarray(4 + metaLen);
@@ -1389,7 +1449,7 @@
                             decryptedFileName = meta.name || "decrypted_file";
                             decryptedFileBlob = new Blob([rawData], { type: meta.type || "application/octet-stream" });
 
-                            $('outputText').value = `[DECRYPTED FILE: ${decryptedFileName} (${(rawData.length / 1024).toFixed(1)} KB)]\nAEAD Authentication Passed — 100% Intact Integrity.`;
+                            $('outputText').value = `[DECRYPTED FILE: ${decryptedFileName} (${(rawData.length / 1024).toFixed(1)} KB)]\nAuthentication Passed — 100% Intact Integrity.`;
                             $('downloadBtn').style.display = '';
                             $('verifiedBadge').classList.add('show');
                             $('resultSection').classList.add('show');
@@ -1432,7 +1492,9 @@
                             }
                         }
                     } catch (er) {
-                        toast('Decryption failed', 'error');
+                        console.error('Decryption error:', er);
+                        const msg = er && er.message ? er.message : String(er);
+                        toast('Decryption error: ' + msg, 'error');
                         if (mode === 'files') showWarning('fileWarning');
                     }
                     setButtonBusy(btn, false);
