@@ -1128,7 +1128,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   14. TAB CONTENT DISPLAY
+   14. TAB CONTENT DISPLAY & TOOLS GRID
    -------------------------------------------------------------------------- */
 .tab-content {
     display: none;
@@ -1138,6 +1138,12 @@ body {
 
 .tab-content.active {
     display: flex;
+}
+
+.tools-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
 /* --------------------------------------------------------------------------

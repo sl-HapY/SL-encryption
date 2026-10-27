@@ -1057,7 +1057,6 @@
             $('clearTextBtn').addEventListener('click', () => {
                 $('inputText').value = '';
                 checkSmartDetection('');
-                if ($('textQrContainer')) $('textQrContainer').classList.remove('show');
             });
         }
         if ($('pasteTextBtn')) {
@@ -1085,18 +1084,6 @@
             });
         }
 
-        // QR Code in Text Tab
-        if ($('genTextQrBtn')) {
-            $('genTextQrBtn').addEventListener('click', () => {
-                const txt = $('inputText').value;
-                genQRInto(txt, 'textQrContainer', 'textQrCode');
-            });
-        }
-        if ($('closeTextQrBtn')) {
-            $('closeTextQrBtn').addEventListener('click', () => {
-                if ($('textQrContainer')) $('textQrContainer').classList.remove('show');
-            });
-        }
         if ($('scanQrBtn')) $('scanQrBtn').addEventListener('click', () => $('qrFileInput').click());
         if ($('qrFileInput')) {
             $('qrFileInput').addEventListener('change', async e => {
