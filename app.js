@@ -774,6 +774,28 @@
         return false;
     }
 
+    // Renders an inline QR <svg> onto a canvas and returns a PNG data URL (for copy/download)
+    function qrSvgToPng(svgEl) {
+        return new Promise((resolve, reject) => {
+            if (!svgEl) { reject(new Error("No QR SVG")); return; }
+            const xml = new XMLSerializer().serializeToString(svgEl);
+            const svg64 = btoa(unescape(encodeURIComponent(xml)));
+            const img = new Image();
+            img.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = 512;
+                c.height = 512;
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 512, 512);
+                ctx.drawImage(img, 0, 0, 512, 512);
+                resolve(c.toDataURL('image/png'));
+            };
+            img.onerror = () => reject(new Error("SVG render failed"));
+            img.src = 'data:image/svg+xml;base64,' + svg64;
+        });
+    }
+
     async function scanQR(src) {
         return new Promise(res => {
             const img = new Image();
@@ -1513,6 +1535,35 @@
                     safeDl(encryptedFileBlob, decryptedFileName);
                 } else if (decryptedFileBlob) {
                     safeDl(decryptedFileBlob, decryptedFileName);
+                }
+            });
+        }
+
+        // Copy QR image / Download QR as PNG (below the QR code)
+        if ($('copyQrBtn')) {
+            $('copyQrBtn').addEventListener('click', async () => {
+                const qrBox = $('qrCode');
+                if (!qrBox || !qrBox.querySelector('svg')) { toast('No QR code generated yet', 'error'); return; }
+                try {
+                    const pngUrl = await qrSvgToPng(qrBox.querySelector('svg'));
+                    const ok = await safeCopyImg(pngUrl);
+                    toast(ok ? 'QR image copied' : 'Long press to save', ok ? 'success' : 'info');
+                } catch (e) {
+                    toast('Could not copy QR image', 'error');
+                }
+            });
+        }
+
+        if ($('downloadQrBtn')) {
+            $('downloadQrBtn').addEventListener('click', async () => {
+                const qrBox = $('qrCode');
+                if (!qrBox || !qrBox.querySelector('svg')) { toast('No QR code generated yet', 'error'); return; }
+                try {
+                    const pngUrl = await qrSvgToPng(qrBox.querySelector('svg'));
+                    safeDl(pngUrl, 'salist_qr.png');
+                    toast('QR code downloaded', 'success');
+                } catch (e) {
+                    toast('Could not download QR', 'error');
                 }
             });
         }

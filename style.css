@@ -112,6 +112,59 @@ body {
     color: var(--bg-base);
 }
 
+/* Custom scrollbars — thin, theme-aware, Apple-like */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-muted);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Textarea-specific: subtle inner track, slimmer thumb */
+.solid-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.solid-textarea::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+}
+
+.solid-textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-muted);
+}
+
+.solid-textarea {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
 .app-container {
     position: relative;
     z-index: 1;
@@ -973,9 +1026,9 @@ body {
     background: #ffffff;
 }
 
-.qr-display svg,
-#qrCode svg,
-#textQrCode svg {
+/* Only the QR itself (direct child), NOT button icons inside .qr-display */
+#qrCode > svg,
+#textQrCode > svg {
     width: 220px !important;
     height: 220px !important;
     min-width: 220px !important;
@@ -984,14 +1037,21 @@ body {
     margin: 0 auto;
 }
 
-.qr-display img,
-#qrCode img,
-#textQrCode img {
+#qrCode > img,
+#textQrCode > img {
     width: 220px !important;
     height: 220px !important;
     display: block !important;
     image-rendering: pixelated;
     margin: 0 auto;
+}
+
+/* Keep QR action button icons at normal icon size */
+.qr-actions-row .solid-button svg {
+    width: 13px !important;
+    height: 13px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1144,6 +1204,21 @@ body {
     display: flex;
     flex-direction: column;
     gap: 18px;
+}
+
+/* Result actions row (below output text) */
+.result-actions-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* QR actions row (below QR code) */
+.qr-actions-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
 }
 
 /* --------------------------------------------------------------------------

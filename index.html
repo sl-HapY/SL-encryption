@@ -435,11 +435,9 @@
                 </span>
             </div>
             <textarea id="outputText" class="solid-textarea" readonly></textarea>
-            <img id="resultImage" class="result-image-box" alt="Result Image">
-            <div class="qr-display" id="qrContainer">
-                <div id="qrCode"></div>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+            <!-- Copy / Download / QR actions directly below output text -->
+            <div class="result-actions-row">
                 <button type="button" class="solid-button solid-button-sm" id="copyResultBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="3"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     <span>Copy</span>
@@ -452,6 +450,23 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
                     <span>QR Code</span>
                 </button>
+            </div>
+
+            <img id="resultImage" class="result-image-box" alt="Result Image">
+
+            <!-- QR display + Copy QR / Download QR below the code -->
+            <div class="qr-display" id="qrContainer">
+                <div id="qrCode"></div>
+                <div class="qr-actions-row">
+                    <button type="button" class="solid-button solid-button-sm" id="copyQrBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="3"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <span>Copy QR</span>
+                    </button>
+                    <button type="button" class="solid-button solid-button-sm solid-button-primary" id="downloadQrBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+                        <span>Download QR</span>
+                    </button>
+                </div>
             </div>
         </section>
 
